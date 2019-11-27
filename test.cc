@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 {
     inputgen(2048);
     Tester t;
+    t.emplace<TimestampTest>();
     t.emplace<TimeseriesTest>("data/testlarge.ts");
     t.emplace<TimeseriesTest>("data/testsmall.ts");
     t.emplace<SolverTest>("data/testsmall.ts");

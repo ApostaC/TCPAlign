@@ -29,7 +29,7 @@ class SolverBase
         using Tlist = Timeseries::Time_Set_t;
         using Vlist = Timeseries::Value_Set_t;
     public:
-        constexpr static T NO_SOLUTION = NAN;
+        const static T NO_SOLUTION; // default is 0
     protected:
         T epsilon_; /* the expected error range */
 

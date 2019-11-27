@@ -5,6 +5,7 @@
 namespace src
 {
 
+const SolverBase::T SolverBase::NO_SOLUTION{NAN};
 bool SolverBase::check(const Timeseries &t1, const Timeseries &t2, 
         const T delta_t, const T eps) const
 {
@@ -30,7 +31,12 @@ bool SolverBase::check(const Timeseries &t1, const Timeseries &t2,
             }
         }
         if(!flag) 
+        {
+            //std::cerr<<"SolverBase::check: failed here: ";
+            //std::cerr<<"small time: "<<t.to_string()<<", range: "<<lb->first.to_string()<<","
+            //    <<ub->first.to_string()<<std::endl;
             return false;
+        }
     }
     return true;
 }
@@ -67,11 +73,6 @@ double BruteForce::solve(const Timeseries &small, const Timeseries &large)
         std::vector<T> new_dt;
         for(auto delta_t : all_dt)
         {
-            //if(finished)
-            //{
-            //    new_dt.push_back(delta_t);  // pass unchecked values
-            //    continue;
-            //}
             auto res = this->check(small, large, delta_t, eps);
             if(res)         // this dt can be solution
             {
@@ -107,30 +108,30 @@ double BruteForce::solve(const Timeseries &small, const Timeseries &large)
     {
         auto max = *std::max_element(dt.begin(), dt.end());
         auto min = *std::min_element(dt.begin(), dt.end());
-        std::cerr<<"Checking possible: epsilon = "<<eps<<std::endl;
-        for(auto v:dt) std::cerr<<v<<" "; std::cerr<<std::endl;
-        std::cerr<<"Max is "<<max<<", Min is "<<min<<", Range is "<<max-min<<std::endl;
-        if(max - min < 2 * eps) return true;
+        std::cerr<<", "<<dt.size()<<" solutions are very near... try to find the result "<<std::endl;
+        //for(auto v:dt) std::cerr<<v<<" "; std::cerr<<std::endl;
+        std::cerr<<"Max is "<<max.to_string()<<", Min is "<<min.to_string()<<", Range is "<<(max-min).to_string()<<std::endl;
+        if((double)(max - min) < 2 * eps) return true;
         else return false;
     };
     int try_ret = 0;
     do
     {
         T solu = NO_SOLUTION;
-        auto mid = (l_eps + r_eps)/2;
-        std::cerr<<"BruteForce::solve: trying epsilon: "<<mid
+        auto mid = (l_eps + r_eps)/2.;
+        std::cerr<<"BruteForce::solve: trying epsilon: "<<mid.to_string()
                 <<", remaining: "<<possible_dt.size();
-        if(mid < 1e-2 && check_possible(possible_dt, mid))
+        if((double)mid < 5e-2 && check_possible(possible_dt, mid))
         {
             // return average
             T sum = 0;
             for(auto v : possible_dt) sum += v;
-            return sum / possible_dt.size();
+            return sum / (double)possible_dt.size();
         }
         try_ret = one_try(possible_dt, mid, solu);
         if(try_ret == 0)
         {
-            std::cerr<<" found solution: "<<solu<<std::endl;
+            std::cerr<<" found solution: "<<solu.to_string()<<std::endl;
             return solu;
         }
         if(try_ret > 0)
@@ -143,7 +144,7 @@ double BruteForce::solve(const Timeseries &small, const Timeseries &large)
             std::cerr<<", get no solution"<<std::endl;
             l_eps = mid;
         }
-    }while(true);
+    }while(possible_dt.size());
     return NO_SOLUTION;
 }
 

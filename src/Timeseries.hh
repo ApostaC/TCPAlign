@@ -2,19 +2,79 @@
 #define _TIMESERIES_HH_
 
 #include <map>
+#include <iostream>
 #include <vector>
 #include <string>
+#include <cmath>
+
 
 namespace src
 {
 
+class Timestamp;
 class Timeseries;
 class TimeseriesReader;
+
+} //namespace src
+
+namespace std
+{
+std::string to_string(const src::Timestamp &ts);
+std::ofstream &operator<<(std::ofstream &o, const src::Timestamp &ts);
+}
+
+namespace src
+{
+class Timestamp
+{
+    public:
+        constexpr static int64_t USEC_SCALE = 100000000;
+    public:
+        //constexpr static Timestamp NAN{0};
+    public:
+        int64_t sec;
+        int64_t usec;    // real time usec = this->usec / USEC_SCALE
+
+    public:
+        /* constructors */
+        constexpr Timestamp() : sec(0), usec(0) {}
+        constexpr Timestamp(int64_t s, int64_t us) : sec(s), usec(us) {}
+        Timestamp(double time) { sec = std::floor(time); usec = (int)((time - sec) * USEC_SCALE); }
+
+        /* bool and assign operator */
+        bool operator<(const Timestamp &r) const { if(sec == r.sec) return usec < r.usec;  return sec < r.sec; }
+        bool operator==(const Timestamp &r) const{ return sec == r.sec && usec == r.usec; }
+        Timestamp &operator=(const Timestamp &r) { sec = r.sec; usec = r.usec; return *this; }
+
+        /* operators with Timestamp */
+        Timestamp &operator+=(const Timestamp &r) {sec += r.sec; usec += r.usec; if(usec > USEC_SCALE) {usec -= USEC_SCALE; sec += 1; } return *this;}
+        Timestamp &operator-=(const Timestamp &r) {sec -= r.sec; usec -= r.usec; if(usec < 0) {usec += USEC_SCALE; sec -= 1; } return *this;}
+        Timestamp operator+(const Timestamp &r) const {Timestamp ret{*this}; ret += r; return ret; }
+        Timestamp operator-(const Timestamp &r) const {Timestamp ret{*this}; ret -= r; return ret; }
+
+        /* operators with double */
+        Timestamp &operator+=(double t) {Timestamp r(t); sec += r.sec; usec += r.usec; return *this;}
+        Timestamp &operator-=(double t) {Timestamp r(t); sec -= r.sec; usec -= r.usec; return *this;}
+        Timestamp &operator/=(double t) 
+        {
+            if (sec % 2 != 0) {sec -= 1; usec += USEC_SCALE; }
+            sec /= t; usec /= t; return *this;
+        }
+        Timestamp operator+(double t) const {Timestamp ret{*this}; ret += Timestamp(t); return ret; }
+        Timestamp operator-(double t) const {Timestamp ret{*this}; ret -= Timestamp(t); return ret; }
+        Timestamp operator/(double t) const {Timestamp ret{*this}; ret /= t; return ret;}
+
+        /* convert to double */
+        operator double() const {return sec + usec * 1. / USEC_SCALE;}
+
+        std::string to_string() const; 
+};
+
 
 class Timeseries
 {
     public:
-        using Time_t    = double;
+        using Time_t    = Timestamp;
         using Value_t   = size_t; 
         using Time_Set_t    = std::vector<Time_t>;
         using Value_Set_t   = std::vector<Value_t>;
@@ -60,8 +120,13 @@ class Timeseries
          */
         Timeseries &    insert(Time_t time, Value_t value) 
         { 
-            if(data_.count(time))
-                throw std::runtime_error("Timeseries::insert: duplicate key! time: " + std::to_string(time));
+            static Time_t eps{1e-8};
+            while(data_.count(time))
+            {
+                auto newtime = time + eps;
+                std::cerr<<"Warning: Timeseries::insert: duplicate key! time: " + std::to_string(time) + ", modify the time to " + std::to_string(newtime)<<std::endl;
+                time = newtime;
+            }
             data_.insert({time, value}); return *this;
         }
         Timeseries &    insertBatch(const Time_Set_t &vt, const Value_Set_t &vs)

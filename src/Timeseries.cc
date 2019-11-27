@@ -7,6 +7,23 @@
 namespace src
 {
 
+std::string Timestamp::to_string() const
+{
+    auto outusec = usec;
+    auto outsec = sec;
+    if(sec < 0) outusec = USEC_SCALE - usec;
+    if(sec < 0 && outusec > 0) outsec = sec + 1;
+
+    int64_t temp = outusec;
+    std::string zeros{};
+    while(temp && temp * 10 < USEC_SCALE)
+    {
+        temp *= 10;
+        zeros += "0";
+    }
+    return std::to_string(outsec) + "." + zeros + std::to_string(outusec); 
+}
+
 Timeseries::Time_Set_t Timeseries::getTimeSet() const
 {
     Time_Set_t ret;
@@ -63,3 +80,19 @@ Timeseries TimeseriesReader::ReadByColId(const std::string &fname,
 }
 
 } // namespace src
+
+namespace std
+{
+
+std::string to_string(const src::Timestamp &ts)
+{
+    return ts.to_string();
+}
+
+std::ofstream &operator<<(std::ofstream &o, const src::Timestamp &ts)
+{
+    o<<ts.to_string();
+    return o;
+}
+
+} // namespace std

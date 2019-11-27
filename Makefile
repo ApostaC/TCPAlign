@@ -1,5 +1,5 @@
 include Makefile.in
-SUBDIRS = test src
+SUBDIRS = test src 
 SUBOBJS = $(addprefix bin/, $(addsuffix .a, $(SUBDIRS)))
 CUDA_CPPFLAGS := -std=c++14 -g -O3 ${LDFLAGS} -Icuda/inc	# no -xHost
 

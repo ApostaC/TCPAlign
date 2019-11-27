@@ -5,6 +5,12 @@
 namespace test
 {
 
+class TimeseriesGen;
+class TimestampTest;
+class TimeseriesTest;
+class SolverTest;
+class BruteForceTest;
+
 class TimeseriesGen :public Test
 {
     public:
@@ -22,6 +28,17 @@ class TimeseriesGen :public Test
         virtual std::string getName() const override
         {
             return "Timeseries generator";
+        }
+
+        virtual bool run() override;
+};
+
+class TimestampTest : public Test
+{
+    public:
+        virtual std::string getName() const override
+        {
+            return "Test Timestamp struct";
         }
 
         virtual bool run() override;
