@@ -124,7 +124,7 @@ class Timeseries
             while(data_.count(time))
             {
                 auto newtime = time + eps;
-                std::cerr<<"Warning: Timeseries::insert: duplicate key! time: " + std::to_string(time) + ", modify the time to " + std::to_string(newtime)<<std::endl;
+                //std::cerr<<"Warning: Timeseries::insert: duplicate key! time: " + std::to_string(time) + ", modify the time to " + std::to_string(newtime)<<std::endl;
                 time = newtime;
             }
             data_.insert({time, value}); return *this;

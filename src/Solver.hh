@@ -36,6 +36,7 @@ class SolverBase
         /**
          * method check
          * check if the delta_t is valid using epsilon
+		 * small + delta_t = large
          */
         bool check(const Timeseries &small, const Timeseries &large, 
                 const T delta_t, const T eps) const;
@@ -45,7 +46,7 @@ class SolverBase
          * method solve
          * solve the problem and return the delta_t
          */
-        virtual double solve(const Timeseries &large, const Timeseries &small) = 0;
+        virtual double solve(const Timeseries &small, const Timeseries &large) = 0;
 
         virtual ~SolverBase() {}
 };

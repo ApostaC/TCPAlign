@@ -21,7 +21,14 @@ bool SolverBase::check(const Timeseries &t1, const Timeseries &t2,
         auto rh = t + delta_t + eps;    // time range up bound
         auto lb = data2.lower_bound(rl);    // iterator low bound
         auto ub = data2.upper_bound(rh);    // iterator up bound
-        if(std::distance(lb, ub) <= 0) return false;    // not in range
+        if(std::distance(lb, ub) <= 0)
+		{
+			std::cerr<<"MESSAGE: SolverBase::check failed because out of range: ";
+            std::cerr<<"small time: "<<t.to_string()<<", delta_t: "<<delta_t
+				<<", range: "<<lb->first.to_string()<<","
+                <<ub->first.to_string()<<std::endl;
+			return false;    // not in range
+		} 
         for(auto it = lb; it!=ub; it++)
         {
             if(it->second == v)
@@ -32,12 +39,14 @@ bool SolverBase::check(const Timeseries &t1, const Timeseries &t2,
         }
         if(!flag) 
         {
-            //std::cerr<<"SolverBase::check: failed here: ";
-            //std::cerr<<"small time: "<<t.to_string()<<", range: "<<lb->first.to_string()<<","
-            //    <<ub->first.to_string()<<std::endl;
+            std::cerr<<"MESSAGE: SolverBase::check: failed because no solution: ";
+            std::cerr<<"small time: "<<t.to_string()<<", delta_t: "<<delta_t
+				<<", range: "<<lb->first.to_string()<<","
+                <<ub->first.to_string()<<std::endl;
             return false;
         }
     }
+    std::cerr<<"MESSAGE: SolverBase::check: sucessed! ";
     return true;
 }
 
@@ -50,16 +59,14 @@ double BruteForce::solve(const Timeseries &small, const Timeseries &large)
     std::vector<T> possible_dt;
     const auto T2 = large.getTimeSet();
     const auto T1 = small.getTimeSet();
-    std::cerr<<"BruteForce::solve: sizes are: "<<T1.size()<<" "<<T2.size()<<std::endl;
+    std::cout<<"BruteForce::solve: sizes are: "<<T1.size()<<" "<<T2.size()<<std::endl;
     for(auto t2 : T2)
-    //for(auto t1 : T1)
     {
         auto t1 = T1[0];
-        // do a quick check to reduce the size of possible_dt
-        //if(this->check(small, large, t2-t1, r_eps))
-            possible_dt.push_back(t2 - t1);
+        if(std::fabs(t2 - t1) < 200)
+			possible_dt.push_back(t2 - t1);
     }
-    std::cerr<<"BruteForce::solve: got "<<possible_dt.size()<<" possible delta_t"<<std::endl;
+    std::cout<<"BruteForce::solve: got "<<possible_dt.size()<<" possible delta_t"<<std::endl;
 
     /* modify the possible_dt, return the state:
      *  retval > 0: more than 1 solution, need smaller eps
@@ -76,6 +83,7 @@ double BruteForce::solve(const Timeseries &small, const Timeseries &large)
             auto res = this->check(small, large, delta_t, eps);
             if(res)         // this dt can be solution
             {
+				std::cerr<<"PASSED!! "<<all_dt.size()<<std::endl;
                 new_dt.push_back(delta_t);
                 if(!has_solu) solu = delta_t;
                 else // already got a solution
@@ -114,14 +122,15 @@ double BruteForce::solve(const Timeseries &small, const Timeseries &large)
         if((double)(max - min) < 2 * eps) return true;
         else return false;
     };
+
     int try_ret = 0;
     do
     {
         T solu = NO_SOLUTION;
         auto mid = (l_eps + r_eps)/2.;
-        std::cerr<<"BruteForce::solve: trying epsilon: "<<mid.to_string()
+        std::cout<<"BruteForce::solve: trying epsilon: "<<mid.to_string()
                 <<", remaining: "<<possible_dt.size();
-        if((double)mid < 5e-2 && check_possible(possible_dt, mid))
+        if((double)mid < 1e-3 && check_possible(possible_dt, mid))
         {
             // return average
             T sum = 0;
@@ -131,17 +140,17 @@ double BruteForce::solve(const Timeseries &small, const Timeseries &large)
         try_ret = one_try(possible_dt, mid, solu);
         if(try_ret == 0)
         {
-            std::cerr<<" found solution: "<<solu.to_string()<<std::endl;
+            std::cout<<" found solution: "<<solu.to_string()<<std::endl;
             return solu;
         }
         if(try_ret > 0)
         {
-            std::cerr<<", get more than 1 solutions"<<std::endl;
+            std::cout<<", get more than 1 solutions"<<std::endl;
             r_eps = mid;
         }
         if(try_ret < 0)
         {
-            std::cerr<<", get no solution"<<std::endl;
+            std::cout<<", get no solution"<<std::endl;
             l_eps = mid;
         }
     }while(possible_dt.size());
